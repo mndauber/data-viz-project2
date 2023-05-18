@@ -1,0 +1,130 @@
+---
+title: "Project 2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(ggridges)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+*Matthew Dauber MD36544*
+
+This is the dataset you will be working with:
+```{r message = FALSE}
+members <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-22/members.csv')
+
+members
+```
+
+More information about the dataset can be found at https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-09-22/readme.md and https://www.himalayandatabase.com/.
+
+**Question 1:** *Your question 1 here.*
+Q1: How does the highest point reached by a climber vary with oxygen usage?
+
+
+**Question 2:** *Your question 2 here.*
+Q2: How does the season in which a climb occurs influences the highpoint reached, when climbers fail to summit a peak?
+
+
+**Introduction:** *Your introduction here.*
+
+For my analysis, I will be examining a subset of a compilation of records for all expeditions that have climbed in the Nepal Himalaya, from 1905 through Spring 2019 to more than 465 significant peaks in Nepal. This data was shared and cleaned by Alex Cookson. This data was last updated on GitHub in September 2020. The subset I will be using contains only data on climb attempts. This dataset records information on Himalayan climbers attributes such as peak name, climber id, date of climb, sex, age, whether they succeeded, and how high they got, if they failed to summit, in addition to other details.
+
+In this paper, I will be examining 2 topics. Firstly, I will investigate how the highest point reached by a climber changes with whether or not they used oxygen or not during their climb. Secondly, I will analyze how the season in which a climb occurs influences the highpoint reached, when climbers fail to summit a peak. The variables I will be using for this analysis are highpoint reached(column highpoint_metres), whether or not the climber used oxygen(column oxygen_used), the season the climb occurred during(column season), and whether or not the climber successfully summited(column success). 
+
+
+**Approach:** *Your approach here.*
+
+To examine the relationship between highpoints reached by a climber and whether or not they used oxygen during the climb, I will be using a ridgeline plot(geom_density_ridges()) to show the change in highpoint reached between oxygen users and nonusers. Ridgeline plots make it easier to intuitively understand trends shown by the data.
+
+To show how the season when a climb occurs influences the highpoint reached by a climber during failed climbs, I will be using a violin plot(geom_violin()), faceted by season. I first filtered out cases where climbers successfully summited the mountain, and cases where the season was unknown. I chose to use a violin plot for this question because violin plots make it easy to compare multiple distributions by placing them side by side.
+
+
+
+
+**Analysis:**
+data exploration to figure out what questions i want to ask
+```{r}
+# Your R code here
+
+members %>% summarize(mean = max(highpoint_metres))
+max(members$highpoint_metres)
+members %>% select(highpoint_metres) %>% na.omit() %>% max()
+members %>% select(highpoint_metres) %>% na.omit()
+members %>% select(highpoint_metres, oxygen_used) %>%na.omit()
+mean(na.omit(members$highpoint_metres))
+sum(members$success)
+members %>% select(highpoint_metres) %>% filter(highpoint_metres<5500)
+
+
+#this dplyr groups the data by peaks, and looks at success rates by peak. 
+members %>% group_by(peak_name) %>% summarize(sr = sum(success)/(sum(success)+sum(!success)), attempts = sum(success)+sum(!success))
+
+members %>% filter(success==TRUE) %>% group_by(peak_name) %>% summarize(maxh = mean(highpoint_metres))#generates a column of each peaks height if changed to mutate
+
+
+```
+Q1
+
+
+```{r}
+# Your R code here
+#q1 plot 
+#q1 how does the highest point reached by a climber vary with oxygen usage?
+ggplot(members, aes(x = highpoint_metres, 
+                    y = oxygen_used, 
+                    fill=oxygen_used)) + 
+  geom_density_ridges() + 
+  scale_x_continuous(breaks = c(4000,5000,6000,7000,8000,9000),
+                     limits = c(5200,9100),
+                     name = "Max Height Reached(metres)") + 
+  scale_y_discrete(labels = NULL, #remove y axis labels and name, since the legend has the same information
+                   name = NULL) + 
+  theme_bw() + 
+  theme(panel.grid.major = element_blank(), #removing gridlines
+        panel.grid.minor = element_blank()) +
+ scale_fill_manual(values=c("#A47E17","#45943D"), #manual color selection using hcl color picker
+                   name="Oxygen\nUsed?", 
+                   labels = c("No",  "Yes")) #renaming labels in the legend
+
+```
+Q2
+
+```{r}
+#q2 When climbers fail to summit, how does the season influence their highpoint reached?
+
+#I first created a subset of the members dataset by filtering out both the one entry with unknown season and cases where climbers successfully summited.
+members3 <- members %>% filter(season!="Unknown") %>% select(success, highpoint_metres, season) %>% filter(success==FALSE)
+
+ggplot(members3, aes(x=success, 
+                     y=highpoint_metres, 
+                     group=season, 
+                     fill=season)) + 
+  geom_violin() + #creating the geom violin
+  facet_wrap(vars(season)) + #facet wrapping by season
+  scale_fill_manual( #setting the custom colors I want to use for each season
+    values=c("#D7B159", "#7EC871", "#FB96CC", "#54C2EE")) + 
+  scale_y_continuous(name="Height\nReached", 
+                     limits=c(4750, 9000)) + #setting custom names and limits
+  scale_x_discrete(name=NULL, #removing x labels and name
+                   labels=NULL) +  
+  theme(axis.title.y = element_text(angle=0, vjust=0.5)) #rotating the y axis label to be easier to read
+#if you go during spring and summer you are more likely to get higher during your climb than going during autumn and winter, regardless of mountain height. 
+
+```
+
+**Discussion:** *Your discussion of results here.*
+
+
+Q1: How does the highest point reached by a climber vary with oxygen usage?
+Q2: How does the season in which a climb occurs influences the highpoint reached, when climbers fail to summit a peak?
+
+Q1
+Oxygen usage has a strong effect on the highest point reached by a climber. The ridgeline plot clearly shows a higher peak of higher points reached for climbers using oxygen compared to climbers without oxygen. I note this by examining both the oxygen using and non oxygen using ridgeline plots, which have differently shaped distributions. I found that oxygen users have a high peak at around 8900 metres, whereas non oxygen users have 3 small peaks, at around 6700 metres, 7300 metres, and 8400 meters. 
+
+Q2 
+The season in which a climb occurs has a small influence on the highpoint reached for climbs that fail to summit. I note this by examining each plot, and sort the seasons into two categories: warm seasons, including spring and summer, and cold seasons, including autumn and winter. Climbs that take place in warm seasons have a wider area at higher heights when compared to cold seasons. This means that climbs that take place during warm seasons are more likely to reach higher heights than those during cold seasons. One potential issue with this plot is that these highpoint measurements do not account for the height of the mountain in each data point. As such, someone stopping at 4000 metres out of 4500 meters counts the same as someone who stopped at 4000 metres out of 9000 metres in this graph. 
